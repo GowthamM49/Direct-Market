@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy Fresh Products</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+        <!-- Navigation Bar -->
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="farmer.html">Farmer Registration</a></li>
+                <li><a href="customer.html">Customer Registration</a></li>
+            </ul>
+        </nav>
+
+    <div class="container">
+        <h1>Available Products</h1>
+        <p id="customerInfo">Loading customer details...</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Price (₹/Kg)</th>
+                    <th>Available Quantity</th>
+                    <th>Quantity to Buy</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="customerItemList">
+                <!-- Items will be loaded dynamically -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:5000"; 
+        let currentCustomer = null; 
+
+        // ✅ Fetch and Display Products from Farmer
+        async function fetchProducts() {
+            try {
+                const response = await fetch(`${API_URL}/items`);
+                if (!response.ok) throw new Error("Failed to fetch items.");
+                const items = await response.json();
+                console.log("Fetched items:", items); // Debugging line
+                displayItems(items);
+            } catch (error) {
+                console.error("Error fetching items:", error);
+                document.getElementById("customerItemList").innerHTML = "<tr><td colspan='5'>Failed to load products.</td></tr>";
+            }
+        }
+
+        function displayItems(items) {
+            console.log("Displaying items:", items); // Debugging line
+            const customerItemList = document.getElementById("customerItemList");
+            if (!items || items.length === 0) {
+                customerItemList.innerHTML = "<tr><td colspan='5'>No items available.</td></tr>";
+                return;
+            }
+            customerItemList.innerHTML = items.map(item => 
+                `<tr>
+                    <td>${item.name}</td>
+                    <td>₹${item.price}</td>
+                    <td>${item.quantity} Kg</td>
+                    <td><input type="number" id="qty-${item._id}" min="1" max="${item.quantity}" placeholder="Enter quantity"></td>
+                    <td><button onclick="buyItem('${item._id}', '${item.name}', ${item.price}, ${item.quantity})">Buy</button></td>
+                </tr>`).join('');
+        }
+
+        // ✅ Fetch Customer Details
+        async function fetchCustomer() {
+            const mobile = localStorage.getItem("customerMobile");
+            if (!mobile) {
+                alert("Please log in.");
+                window.location.href = "customer.html"; // Redirect to login page
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/customer/${mobile}`);
+                if (!response.ok) throw new Error("Customer not found.");
+                currentCustomer = await response.json();
+
+                if (!currentCustomer || !currentCustomer.name) {
+                    throw new Error("Invalid customer data.");
+                }
+
+                document.getElementById("customerInfo").textContent = `Hello, ${currentCustomer.name} (${currentCustomer.city})`;
+            } catch (error) {
+                console.error("Error fetching customer details:", error);
+                alert("Error loading customer details. Please log in again.");
+                window.location.href = "customer.html"; // Redirect to login page
+            }
+        }
+
+        // ✅ Buy Item and Store Customer Info
+        async function buyItem(id, name, price, availableQty) {
+            const quantityInput = document.getElementById(`qty-${id}`);
+            const quantity = parseInt(quantityInput.value);
+
+            if (!quantity || quantity <= 0 || quantity > availableQty) {
+                alert(`Please enter a valid quantity (1-${availableQty} Kg).`);
+                return;
+            }
+
+            if (!currentCustomer) {
+                alert("Customer details not found. Please login again.");
+                return;
+            }
+
+            const purchaseData = { 
+                itemId: id, 
+                name, 
+                price, 
+                quantity,
+                customerName: currentCustomer.name,  
+                customerMobile: currentCustomer.mobile,  
+                customerCity: currentCustomer.city  
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/customer/buy`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(purchaseData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) throw new Error(result.message || "Purchase failed.");
+
+                alert(`You bought ${quantity} Kg of ${name} for ₹${price * quantity}`);
+
+                // ✅ Refresh product list after successful purchase
+                fetchProducts();
+            } catch (error) {
+                console.error("Error during purchase:", error);
+                alert("Purchase failed. Please try again.");
+            }
+        }
+
+        // ✅ Logout Functionality
+        function logout() {
+            localStorage.removeItem("customerMobile");
+            window.location.href = "index.html";
+        }
+
+        // ✅ Load Data on Page Load
+        (async () => {
+            await fetchCustomer();
+            fetchProducts();
+        })();
+    </script>
+
+</body>
+</html>

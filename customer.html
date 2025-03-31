@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Registration & Login</title>
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+        <!-- Navigation Bar -->
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="farmer.html">Farmer Registration</a></li>
+
+            </ul>
+        </nav>
+
+    <div class="container">
+        <!-- Registration Form -->
+        <div id="register-form">
+            <h1>Customer Registration</h1>
+            <form id="registerForm" onsubmit="registerCustomer(event)">
+                <input type="text" id="name" placeholder="Full Name" required>
+                <input type="email" id="email" placeholder="Email" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <input type="text" id="mobile" placeholder="Mobile Number" required>
+                <input type="text" id="city" placeholder="City" required>
+                <button type="submit">Register</button>
+            </form>
+            <div class="toggle-form">
+                <p>Already Registered? <a href="#" onclick="showLogin()">Login</a></p>
+            </div>
+            <p id="register-message"></p>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-form" class="hidden">
+            <h1>Customer Login</h1>
+            <form id="loginForm" onsubmit="loginCustomer(event)">
+                <input type="email" id="login-email" placeholder="Enter your email" required>
+                <input type="password" id="login-password" placeholder="Enter your password" required>
+                <button type="submit">Login</button>
+            </form>
+            <div class="toggle-form">
+                <p>New customer? <a href="#" onclick="showRegister()">Register Here</a></p>
+            </div>
+            <p id="login-message"></p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:5000"; // Your backend server URL
+
+        function showLogin() {
+            document.getElementById("register-form").classList.add("hidden");
+            document.getElementById("login-form").classList.remove("hidden");
+        }
+
+        function showRegister() {
+            document.getElementById("login-form").classList.add("hidden");
+            document.getElementById("register-form").classList.remove("hidden");
+        }
+
+        // Register Customer
+        async function registerCustomer(event) {
+            event.preventDefault();
+
+            const name = document.getElementById("name").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const mobile = document.getElementById("mobile").value.trim();
+            const city = document.getElementById("city").value.trim();
+
+            if (!name || !email || !password || !mobile || !city) {
+                alert("Please fill in all fields.");
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/customers/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, email, password, mobile, city })
+            });
+
+            const result = await response.json();
+            const messageElement = document.getElementById("register-message");
+
+            if (response.ok) {
+                messageElement.style.color = "green";
+                messageElement.textContent = result.message;
+                setTimeout(() => showLogin(), 2000); // Redirect to login after success
+            } else {
+                messageElement.style.color = "red";
+                messageElement.textContent = result.message;
+            }
+        }
+
+        // Login Customer
+        async function loginCustomer(event) {
+            event.preventDefault();
+
+            const email = document.getElementById("login-email").value.trim();
+            const password = document.getElementById("login-password").value.trim();
+
+            if (!email || !password) {
+                alert("Please enter your email and password.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/customers/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const result = await response.json();
+                const messageElement = document.getElementById("login-message");
+
+                if (response.ok && result.customer) {
+                    messageElement.style.color = "green";
+                    messageElement.textContent = result.message;
+
+                    // ✅ Store customer mobile in localStorage for dashboard
+                    localStorage.setItem("customerMobile", result.customer.mobile);
+
+                    setTimeout(() => {
+                        window.location.href = "customer-dashboard.html"; // Redirect to dashboard
+                    }, 2000);
+                } else {
+                    messageElement.style.color = "red";
+                    messageElement.textContent = result.message;
+                }
+            } catch (error) {
+                console.error("Login Error:", error);
+                alert("An error occurred while logging in. Please try again.");
+            }
+        }
+    </script>
+
+</body>
+</html>

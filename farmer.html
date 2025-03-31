@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmer Registration & Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+        <!-- Navigation Bar -->
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="customer.html">Customer Registration</a></li>
+            </ul>
+        </nav>
+
+    <div class="container">
+        <!-- Registration Form -->
+        <div id="register-form">
+            <h1>Farmer Registration</h1>
+            <form onsubmit="registerFarmer(event)">
+                <label for="farmer-name">Full Name</label>
+                <input type="text" id="farmer-name" placeholder="Enter your name" required>
+
+                <label for="farmer-phone">Phone Number</label>
+                <input type="text" id="farmer-phone" placeholder="Enter your phone number" required>
+
+                <label for="city">City</label>
+                <input type="text" id="city" placeholder="Enter your city" required>
+
+                <button type="submit">Register</button>
+            </form>
+            <div class="toggle-form">
+                <p>Already Registered? <a href="#" onclick="showLogin()">Login</a></p>
+            </div>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-form" class="hidden">
+            <h1>Farmer Login</h1>
+            <form onsubmit="loginFarmer(event)">
+                <label for="login-phone">Phone Number</label>
+                <input type="text" id="login-phone" placeholder="Enter your phone number" required>
+
+                <button type="submit">Login</button>
+            </form>
+            <div class="toggle-form">
+                <p>New Farmer? <a href="#" onclick="showRegister()">Register Here</a></p>
+            </div>
+        </div>
+                <!-- Back Button -->
+                <button class="back-btn" onclick="goBack()">⬅ Back</button>
+            </div>
+    </div>
+
+    <script>
+        function showLogin() {
+            document.getElementById("register-form").classList.add("hidden");
+            document.getElementById("login-form").classList.remove("hidden");
+        }
+
+        function showRegister() {
+            document.getElementById("login-form").classList.add("hidden");
+            document.getElementById("register-form").classList.remove("hidden");
+        }
+
+        async function registerFarmer(event) {
+            event.preventDefault();
+            
+            let name = document.getElementById("farmer-name").value;
+            let phone = document.getElementById("farmer-phone").value;
+            let city = document.getElementById("city").value;
+
+            try {
+                let response = await fetch("http://localhost:5000/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, phone, city })
+                });
+
+                let result = await response.json();
+                alert(result.message);
+
+                if (response.ok) {
+                    showLogin();
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Registration failed!");
+            }
+        }
+
+        async function loginFarmer(event) {
+            event.preventDefault();
+            let phone = document.getElementById("login-phone").value;
+
+            try {
+                let response = await fetch("http://localhost:5000/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ phone })
+                });
+
+                let result = await response.json();
+                alert(result.message);
+
+                if (response.ok) {
+                    // ✅ Store farmer's details in localStorage
+                    localStorage.setItem("farmerMobile", result.farmer.mobile);
+                    localStorage.setItem("farmerName", result.farmer.name);
+                    localStorage.setItem("farmerCity", result.farmer.city);
+
+                    // Redirect to farmer dashboard
+                    window.location.href = "farmer-dashboard.html";
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Login failed!");
+            }
+        }
+    </script>
+
+</body>
+</html>
